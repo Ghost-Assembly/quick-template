@@ -1,0 +1,7 @@
+node_modules/
+coverage/
+.env
+.env.*
+__pycache__/
+.ruff_cache/
+.scannerwork/
