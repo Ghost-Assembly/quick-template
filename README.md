@@ -71,6 +71,15 @@ and security-hotspot counts, zero duplicated lines, and no dismissed findings.
 Coverage includes untested runtime JavaScript; it is not inflated by excluding
 first-party source.
 
+Review analyses use `branch-review-N` and manual non-main analyses use a `branch-`
+prefix. These names match Sonar's default long-lived branch pattern so the results
+cover overall code. The policy check rejects short-lived branches; changing the
+project's long-lived branch pattern must preserve these analysis names.
+
+Ubuntu CI installs `librsvg2-common` explicitly because the SVG decoder is optional
+when installing GNOME tools without recommended packages. Icon checks must decode
+the shipped SVGs rather than skip them when a runner lacks a loader.
+
 Pages deploys the tested documentation artifact only after required checks pass
 on main. Releases promote the ZIP from successful CI for the exact tagged commit;
 they do not rebuild it. Artifacts are retained for 90 days, so release promptly or
