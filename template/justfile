@@ -25,9 +25,9 @@ fmt:
 
 # Verify canonical files, documentation, source, and schemas
 lint: template-check docs-check
-    ./node_modules/.bin/eslint --max-warnings=0 .
+    ./node_modules/.bin/eslint --max-warnings=0 --no-inline-config .
     ./node_modules/.bin/prettier --check .
-    ruff check scripts tests
+    ruff check --ignore-noqa scripts tests
     ruff format --check scripts tests
     /usr/bin/glib-compile-schemas --strict --dry-run schemas
     @if compgen -G 'scripts/*.sh' >/dev/null; then shellcheck scripts/*.sh; fi
@@ -37,8 +37,8 @@ template-check:
     python3 scripts/template.py check
 
 # Adopt a reviewed canonical revision
-template-sync revision:
-    python3 scripts/template.py sync '{{revision}}'
+template-sync $revision:
+    python3 scripts/template.py sync "$revision"
 
 # Report newer approved template revisions
 template-status:
@@ -72,7 +72,7 @@ security:
     python3 scripts/security_source.py
     gitleaks git --redact --no-banner .
     python3 scripts/workflow_lint.py
-    zizmor --offline .github/workflows/
+    zizmor --offline --persona auditor --no-ignores .github/workflows/
 
 # Build an explicit runtime-only ZIP
 build:

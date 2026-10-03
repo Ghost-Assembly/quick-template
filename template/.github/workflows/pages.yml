@@ -8,12 +8,13 @@ concurrency:
   cancel-in-progress: false
 jobs:
   deploy:
+    name: deploy
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
-      actions: read
-      pages: write
-      id-token: write
+      actions: read # Inspect workflow runs and download their tested artifacts.
+      pages: write # Publish the tested documentation artifact to Pages.
+      id-token: write # Authenticate the Pages deployment with GitHub OIDC.
     environment:
       name: github-pages
       url: ${{ steps.deploy.outputs.page_url }}

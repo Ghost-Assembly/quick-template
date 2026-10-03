@@ -14,6 +14,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   sonar:
+    name: sonar
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -34,8 +35,9 @@ jobs:
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
           REVIEW: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.ref_name }}
         run: |
-          branch=main
+          branch="$BRANCH"
           if [ -n "$REVIEW" ]; then branch="review-$REVIEW"; fi
           revision="$(git rev-parse HEAD)"
           project="Ghost-Assembly_$(jq -r .name package.json)"

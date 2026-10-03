@@ -14,15 +14,15 @@ fmt:
 
 lint:
     ./node_modules/.bin/prettier --check .
-    cd template && ../node_modules/.bin/eslint --max-warnings=0 .
-    ruff check template/scripts template/tests
+    cd template && ../node_modules/.bin/eslint --max-warnings=0 --no-inline-config .
+    ruff check --ignore-noqa template/scripts template/tests
     ruff format --check template/scripts template/tests
     cmp mise.toml template/mise.toml
     cmp package.json template/package.json
     cmp package-lock.json template/package-lock.json
     python3 template/scripts/workflow_lint.py
     python3 template/scripts/workflow_lint.py .
-    zizmor --offline .github/workflows template/.github/workflows
+    zizmor --offline --persona auditor --no-ignores .github/workflows template/.github/workflows
 
 test:
     python3 -m unittest discover -s template/tests -p 'test_*.py' -v

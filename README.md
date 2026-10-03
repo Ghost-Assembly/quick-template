@@ -40,6 +40,10 @@ The workflow linter adapts GitHub's July 2026 `$/` self references to the equiva
 `./` syntax for actionlint 1.7.12's parser. It preserves all other content and every
 diagnostic. Zizmor checks the original files without this adaptation.
 
+Lint rejects inline ESLint configuration and scans through Ruff `noqa` comments.
+Zizmor runs its auditor persona without honoring ignore comments or configuration.
+Fix findings in the canonical source before approving a tooling revision.
+
 ## Adopting an approved revision
 
 Publish an approved template release targeting its full commit SHA. In each

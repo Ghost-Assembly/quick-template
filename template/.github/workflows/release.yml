@@ -4,12 +4,13 @@ on:
     tags: ['v*']
 permissions:
   contents: read
-  actions: read
+  actions: read # Inspect workflow runs and download their tested artifacts.
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 jobs:
   verify:
+    name: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     outputs:
@@ -39,12 +40,13 @@ jobs:
           test -n "$run" && test "$run" != null
           echo "run=$run" >> "$GITHUB_OUTPUT"
   publish:
+    name: publish
     needs: verify
     runs-on: ubuntu-24.04
     timeout-minutes: 10
     permissions:
-      contents: write
-      actions: read
+      contents: write # Create the release and attach its tested ZIP.
+      actions: read # Inspect workflow runs and download their tested artifacts.
     steps:
       - uses: jdx/mise-action@c2a87611a18de5b3828c5652fe268e992400cb5c # v4.3.0
         with:

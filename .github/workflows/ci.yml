@@ -11,6 +11,7 @@ concurrency:
   cancel-in-progress: true
 jobs:
   checks:
+    name: checks
     runs-on: ubuntu-24.04
     timeout-minutes: 25
     steps:
@@ -24,12 +25,14 @@ jobs:
       - run: npm ci --ignore-scripts
       - run: just ci
   security:
+    name: security
     uses: $/.github/workflows/security.yml
     permissions:
       contents: read
-      actions: read
-      security-events: write
+      actions: read # Inspect workflow runs and download their tested artifacts.
+      security-events: write # Upload CodeQL findings to GitHub code scanning.
   ci:
+    name: ci
     if: always()
     needs: [checks, security]
     runs-on: ubuntu-24.04

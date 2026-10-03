@@ -36,7 +36,10 @@ def blocks(metadata: dict, project: dict) -> dict[str, list[tuple[str, str]]]:
     )
     uninstall = f"gnome-extensions disable {uuid}\ngnome-extensions uninstall {uuid}"
     if name == "quickspot":
-        uninstall = "systemctl --user disable --now quickspot-soloist.service\n" + uninstall
+        uninstall = (
+            "if systemctl --user cat quickspot-soloist.service >/dev/null 2>&1; then\n"
+            "    systemctl --user disable --now quickspot-soloist.service\nfi\n" + uninstall
+        )
     return {
         "install": [
             (
@@ -153,7 +156,8 @@ def blocks(metadata: dict, project: dict) -> dict[str, list[tuple[str, str]]]:
                 (
                     "Run just ci, just test-live, and the project manual checklist. Set "
                     "metadata.json version-name and package.json version to the same new "
-                    "version, update the npm lockfile, regenerate the docs, and commit the "
+                    "version and increment metadata.json version for the GNOME Extension "
+                    "Store. Update the npm lockfile, regenerate the docs, and commit the "
                     "reviewed changes to main through a passing pull request."
                 ),
             ),
