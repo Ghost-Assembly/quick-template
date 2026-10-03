@@ -79,7 +79,7 @@ JavaScript and Python analysis, and Sonar analysis using its GitHub `SONAR_TOKEN
 The required `ci` check fails if any job fails or skips. Sonar results must match
 the checked PR or main branch and commit, with zero security, reliability, maintainability,
 and security-hotspot counts, zero duplicated lines, and no dismissed findings.
-Coverage includes untested runtime JavaScript; it is not inflated by excluding
+Coverage includes untested runtime JavaScript and Python tooling; it is not inflated by excluding
 first-party source.
 
 This repository also requires authenticated Sonar analysis through its own
