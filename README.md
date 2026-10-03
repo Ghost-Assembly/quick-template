@@ -42,6 +42,12 @@ change, run `just build` to synchronize that metadata into the payload. Dependab
 updates are centralized here; keep CodeQL initialization and analysis on the same
 commit.
 
+Dependabot scans both the root and `template/` directories in each ecosystem so
+updates preserve the identical manifests, lockfiles, and Action pins. Configure
+`SONAR_TOKEN` in both GitHub Actions secrets and Dependabot secrets: GitHub uses
+the latter for workflows triggered by Dependabot PRs. Both kinds of PR require
+the complete security and Sonar checks before merging.
+
 The workflow linter adapts GitHub's July 2026 `$/` self references to the equivalent
 `./` syntax for actionlint 1.7.12's parser. It preserves all other content and every
 diagnostic. Zizmor checks the original files without this adaptation.
