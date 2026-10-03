@@ -77,7 +77,7 @@ override and downloads canonical files from GitHub.
 Every extension runs the same local verification and security scanners, CodeQL
 JavaScript and Python analysis, and Sonar analysis using its GitHub `SONAR_TOKEN`.
 The required `ci` check fails if any job fails or skips. Sonar results must match
-the checked branch and commit, with zero security, reliability, maintainability,
+the checked PR or main branch and commit, with zero security, reliability, maintainability,
 and security-hotspot counts, zero duplicated lines, and no dismissed findings.
 Coverage includes untested runtime JavaScript; it is not inflated by excluding
 first-party source.
@@ -86,10 +86,13 @@ This repository also requires authenticated Sonar analysis through its own
 `SONAR_TOKEN` and the same exact-revision, zero-issues policy. Its scanner treats
 the payload's tooling tests as tests; extension coverage belongs to consumers.
 
-Review analyses use `branch-review-N` and manual non-main analyses use a `branch-`
-prefix. These names match Sonar's default long-lived branch pattern so the results
-cover overall code. The policy check rejects short-lived branches; changing the
-project's long-lived branch pattern must preserve these analysis names.
+The Sonar Free plan supports PR analysis targeting main and overall-code analysis
+on main. Before merging, the policy checks the PR's changed code; after merging
+and on scheduled runs, it checks the entire main branch. Both require the exact
+analyzed revision, complete zero-issue and duplication metrics, and no dismissed
+findings. A green PR check does not establish that all existing main-branch issues
+are fixed. Main CI and deployment remain blocked until overall findings reach zero.
+Manual overall-code scans must be dispatched on main.
 
 Ubuntu CI installs `librsvg2-common` explicitly because the SVG decoder is optional
 when installing GNOME tools without recommended packages. Icon checks must decode

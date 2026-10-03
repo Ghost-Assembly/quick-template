@@ -186,6 +186,17 @@ class SonarTests(unittest.TestCase):
     def test_current_zero_results_pass(self) -> None:
         self.assertIsNone(gate.validate(self.measures(), "current", "current"))
 
+    def test_pull_request_results_must_match_the_review_and_revision(self) -> None:
+        reviews = [{"key": "3", "base": "main", "commit": {"sha": "current"}}]
+        revision = gate.pull_request_revision(reviews, "3")
+        self.assertIsNone(gate.validate(self.measures(), revision, "current"))
+        with self.assertRaises(ValueError):
+            gate.validate(self.measures(), revision, "stale")
+        with self.assertRaises(ValueError):
+            gate.pull_request_revision(reviews, "4")
+        with self.assertRaises(ValueError):
+            gate.pull_request_revision([{"key": "3", "base": "other"}], "3")
+
     def test_short_branch_results_cannot_approve_overall_code(self) -> None:
         branches = [
             {"name": "main", "type": "LONG"},
