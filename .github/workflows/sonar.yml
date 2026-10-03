@@ -30,7 +30,7 @@ jobs:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
         run: test -n "$SONAR_TOKEN" || { echo '::error::SONAR_TOKEN is required; scan cannot be skipped'; exit 1; }
       - run: npm ci --ignore-scripts
-      - run: just test
+      - run: just coverage
       - name: Analyze the checked pull request or main branch
         env:
           SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}

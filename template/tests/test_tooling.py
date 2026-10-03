@@ -6,6 +6,7 @@ import io
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -196,6 +197,46 @@ class SonarTests(unittest.TestCase):
             gate.pull_request_revision(reviews, "4")
         with self.assertRaises(ValueError):
             gate.pull_request_revision([{"key": "3", "base": "other"}], "3")
+
+    def test_cli_checks_the_requested_scope_and_rejects_dismissed_findings(self) -> None:
+        def responder(selection: dict[str, str], responses: dict):
+            def respond(endpoint: str, parameters: dict[str, str]) -> dict:
+                if endpoint in {"measures/component", "issues/search"}:
+                    self.assertEqual(
+                        {k: v for k, v in parameters.items() if k in {"pullRequest", "branch"}},
+                        selection,
+                    )
+                return responses[endpoint]
+
+            return respond
+
+        for review in [False, True]:
+            for dismissed in [0, 1]:
+                selection = {"pullRequest": "3"} if review else {"branch": "main"}
+                responses = {
+                    "project_pull_requests/list": {
+                        "pullRequests": [{"key": "3", "base": "main", "commit": {"sha": "current"}}]
+                    },
+                    "project_branches/list": {"branches": [{"name": "main", "type": "LONG"}]},
+                    "project_analyses/search": {"analyses": [{"revision": "current"}]},
+                    "measures/component": {"component": {"measures": self.measures()}},
+                    "issues/search": {"total": dismissed},
+                }
+
+                argv = ["sonar_gate.py", "--project", "fixture", "--revision", "current"]
+                if review:
+                    argv.extend(["--pull-request", "3"])
+                with (
+                    self.subTest(review=review, dismissed=dismissed),
+                    patch.object(gate, "request", side_effect=responder(selection, responses)),
+                    patch.object(sys, "argv", argv),
+                    patch("sys.stdout", new=io.StringIO()),
+                ):
+                    if dismissed:
+                        with self.assertRaises(ValueError):
+                            gate.main()
+                    else:
+                        gate.main()
 
     def test_short_branch_results_cannot_approve_overall_code(self) -> None:
         branches = [
