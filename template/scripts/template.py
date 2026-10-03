@@ -8,6 +8,7 @@ import io
 import json
 import os
 import re
+import tempfile
 import zipfile
 from pathlib import Path, PurePosixPath
 
@@ -56,13 +57,30 @@ def source_files(sha: str) -> dict[str, bytes]:
         }
     cache = Path(os.environ.get("XDG_CACHE_HOME", Path.home() / ".cache")) / "quick-template"
     archive = cache / f"{sha}.zip"
-    if not archive.exists() or os.environ.get("CI"):
+    data = (
+        archive.read_bytes()
+        if archive.exists() and archive.stat().st_size <= 8 * 1024 * 1024
+        else b""
+    )
+    if not zipfile.is_zipfile(io.BytesIO(data)) or os.environ.get("CI"):
         data = download("codeload.github.com", f"/{REPOSITORY}/zip/{sha}")
+        if not zipfile.is_zipfile(io.BytesIO(data)):
+            raise ValueError("Canonical template response is not a ZIP archive")
         cache.mkdir(parents=True, exist_ok=True)
-        archive.write_bytes(data)
+        temporary = None
+        try:
+            with tempfile.NamedTemporaryFile(
+                dir=cache, prefix=".download-", delete=False
+            ) as stream:
+                temporary = Path(stream.name)
+                stream.write(data)
+            temporary.replace(archive)
+        finally:
+            if temporary is not None:
+                temporary.unlink(missing_ok=True)
     prefix = f"quick-template-{sha}/template/"
     files = {}
-    with zipfile.ZipFile(io.BytesIO(archive.read_bytes())) as bundle:
+    with zipfile.ZipFile(io.BytesIO(data)) as bundle:
         if sum(item.file_size for item in bundle.infolist()) > 32 * 1024 * 1024:
             raise ValueError("Expanded template exceeds size limit")
         for item in bundle.infolist():

@@ -1,11 +1,15 @@
 """Behavior regressions for canonical tooling and publication boundaries."""
 
 import importlib.util
+import io
 import json
+import os
 import subprocess
 import tempfile
 import unittest
+import zipfile
 from pathlib import Path
+from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
 
@@ -75,6 +79,30 @@ class WorkflowTests(unittest.TestCase):
 
 
 class TemplateTests(unittest.TestCase):
+    def test_corrupt_archive_cache_is_recovered_and_reused(self) -> None:
+        sha = "a" * 40
+        buffer = io.BytesIO()
+        expected = {"justfile": b"canonical commands", "scripts/template.py": b"canonical helper"}
+        with zipfile.ZipFile(buffer, "w") as bundle:
+            for name, data in expected.items():
+                bundle.writestr(f"quick-template-{sha}/template/{name}", data)
+        with tempfile.TemporaryDirectory() as work:
+            cache = Path(work) / "quick-template"
+            cache.mkdir()
+            archive = cache / f"{sha}.zip"
+            archive.write_bytes(b"interrupted download")
+            with (
+                patch.dict(
+                    os.environ, {"XDG_CACHE_HOME": work, "QUICK_TEMPLATE_SOURCE": "", "CI": ""}
+                ),
+                patch.object(template, "download", return_value=buffer.getvalue()) as download,
+            ):
+                self.assertEqual(template.source_files(sha), expected)
+                self.assertEqual(template.source_files(sha), expected)
+                download.assert_called_once()
+            self.assertTrue(zipfile.is_zipfile(archive))
+            self.assertEqual(list(cache.glob(".download-*")), [])
+
     def test_local_manifest_cannot_bless_changed_canonical_content(self) -> None:
         with tempfile.TemporaryDirectory() as work:
             root = Path(work)
