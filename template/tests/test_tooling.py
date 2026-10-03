@@ -1,10 +1,12 @@
 """Behavior regressions for canonical tooling and publication boundaries."""
 
+import hashlib
 import importlib.util
 import io
 import json
 import os
 import subprocess
+import sys
 import tempfile
 import unittest
 import zipfile
@@ -30,6 +32,58 @@ bundle = load("build")
 docs = load("docs")
 workflow = load("workflow_lint")
 security = load("security_source")
+
+
+class GitleaksTests(unittest.TestCase):
+    def test_public_project_identity_cannot_exempt_credentials_or_other_contexts(self) -> None:
+        public_id = "napalm255_tiler"
+        fixture = hashlib.sha256(b"nonfunctional scanner regression fixture").hexdigest()[:40]
+        vendor_fixture = "squ_" + fixture
+        cases = [
+            ("public identity", "sonar-project.properties", "sonar.projectKey", public_id, 0),
+            ("other identity", "sonar-project.properties", "sonar.projectKey", fixture, 1),
+            ("credential", "sonar-project.properties", "sonar.token", fixture, 1),
+            ("public value as credential", "sonar-project.properties", "token", public_id, 1),
+            ("other file", "other.properties", "sonar.projectKey", public_id, 1),
+            (
+                "vendor credential",
+                "sonar-project.properties",
+                "sonar.projectKey",
+                vendor_fixture,
+                1,
+            ),
+            (
+                "appended credential",
+                "sonar-project.properties",
+                "sonar.projectKey",
+                public_id + " token=" + fixture,
+                1,
+            ),
+        ]
+        for name, path, property_name, value, expected in cases:
+            with self.subTest(case=name), tempfile.TemporaryDirectory() as work:
+                root = Path(work)
+                (root / path).write_text(f"{property_name}={value}\n")
+
+                result = subprocess.run(
+                    [
+                        "/usr/bin/env",
+                        "gitleaks",
+                        "dir",
+                        "--redact",
+                        "--no-banner",
+                        "--no-color",
+                        ".",
+                    ],
+                    cwd=root,
+                    env={**os.environ, "GITLEAKS_CONFIG": str(ROOT / ".gitleaks.toml")},
+                    capture_output=True,
+                    text=True,
+                    check=False,
+                    timeout=30,
+                )
+
+                self.assertEqual(result.returncode, expected, result.stderr)
 
 
 class SecuritySourceTests(unittest.TestCase):
@@ -132,6 +186,70 @@ class SonarTests(unittest.TestCase):
 
     def test_current_zero_results_pass(self) -> None:
         self.assertIsNone(gate.validate(self.measures(), "current", "current"))
+
+    def test_pull_request_results_must_match_the_review_and_revision(self) -> None:
+        reviews = [{"key": "3", "base": "main", "commit": {"sha": "current"}}]
+        revision = gate.pull_request_revision(reviews, "3")
+        self.assertIsNone(gate.validate(self.measures(), revision, "current"))
+        with self.assertRaises(ValueError):
+            gate.validate(self.measures(), revision, "stale")
+        with self.assertRaises(ValueError):
+            gate.pull_request_revision(reviews, "4")
+        with self.assertRaises(ValueError):
+            gate.pull_request_revision([{"key": "3", "base": "other"}], "3")
+
+    def test_cli_checks_the_requested_scope_and_rejects_dismissed_findings(self) -> None:
+        def responder(selection: dict[str, str], responses: dict):
+            def respond(endpoint: str, parameters: dict[str, str]) -> dict:
+                if endpoint in {"measures/component", "issues/search"}:
+                    self.assertEqual(
+                        {k: v for k, v in parameters.items() if k in {"pullRequest", "branch"}},
+                        selection,
+                    )
+                return responses[endpoint]
+
+            return respond
+
+        for review in [False, True]:
+            for dismissed in [0, 1]:
+                selection = {"pullRequest": "3"} if review else {"branch": "main"}
+                responses = {
+                    "project_pull_requests/list": {
+                        "pullRequests": [{"key": "3", "base": "main", "commit": {"sha": "current"}}]
+                    },
+                    "project_branches/list": {"branches": [{"name": "main", "type": "LONG"}]},
+                    "project_analyses/search": {"analyses": [{"revision": "current"}]},
+                    "measures/component": {"component": {"measures": self.measures()}},
+                    "issues/search": {"total": dismissed},
+                }
+
+                argv = ["sonar_gate.py", "--project", "fixture", "--revision", "current"]
+                if review:
+                    argv.extend(["--pull-request", "3"])
+                with (
+                    self.subTest(review=review, dismissed=dismissed),
+                    patch.object(gate, "request", side_effect=responder(selection, responses)),
+                    patch.object(sys, "argv", argv),
+                    patch("sys.stdout", new=io.StringIO()),
+                ):
+                    if dismissed:
+                        with self.assertRaises(ValueError):
+                            gate.main()
+                    else:
+                        gate.main()
+
+    def test_short_branch_results_cannot_approve_overall_code(self) -> None:
+        branches = [
+            {"name": "main", "type": "LONG"},
+            {"name": "branch-review-1", "type": "LONG"},
+            {"name": "review-1", "type": "SHORT"},
+        ]
+        for name in ["main", "branch-review-1"]:
+            with self.subTest(branch=name):
+                self.assertIsNone(gate.validate_branch(branches, name))
+        for name in ["review-1", "missing"]:
+            with self.subTest(branch=name), self.assertRaises(ValueError):
+                gate.validate_branch(branches, name)
 
     def test_every_quality_category_and_exact_duplication_are_required(self) -> None:
         for name in gate.METRICS:

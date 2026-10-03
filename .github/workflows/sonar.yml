@@ -44,9 +44,9 @@ jobs:
           if [ -n "$REVIEW" ]; then
             test "$TARGET_BRANCH" = main || { echo '::error::Free-plan PR analysis must target main'; exit 1; }
             sonar-scanner -Dsonar.projectKey="$project" -Dsonar.pullrequest.key="$REVIEW" -Dsonar.pullrequest.branch="$SOURCE_BRANCH" -Dsonar.pullrequest.base="$TARGET_BRANCH" -Dsonar.scm.revision="$revision" -Dsonar.qualitygate.wait=true
-            python3 scripts/sonar_gate.py --project "$project" --pull-request "$REVIEW" --revision "$revision"
+            python3 template/scripts/sonar_gate.py --project "$project" --pull-request "$REVIEW" --revision "$revision"
           else
             test "$BRANCH" = main || { echo '::error::Dispatch main for overall-code analysis on the Free plan'; exit 1; }
             sonar-scanner -Dsonar.projectKey="$project" -Dsonar.branch.name=main -Dsonar.scm.revision="$revision" -Dsonar.qualitygate.wait=true
-            python3 scripts/sonar_gate.py --project "$project" --branch main --revision "$revision"
+            python3 template/scripts/sonar_gate.py --project "$project" --branch main --revision "$revision"
           fi

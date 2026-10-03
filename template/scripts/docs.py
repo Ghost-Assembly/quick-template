@@ -156,8 +156,9 @@ def blocks(metadata: dict, project: dict) -> dict[str, list[tuple[str, str]]]:
                 (
                     "Run just ci, just test-live, and the project manual checklist. Set "
                     "metadata.json version-name and package.json version to the same new "
-                    "version and increment metadata.json version for the GNOME Extension "
-                    "Store. Update the npm lockfile, regenerate the docs, and commit the "
+                    "version. The GNOME Extensions website assigns the numeric metadata.json "
+                    "version during submission. Update the npm lockfile, regenerate the docs, "
+                    "and commit the "
                     "reviewed changes to main through a passing pull request."
                 ),
             ),
@@ -190,6 +191,7 @@ def blocks(metadata: dict, project: dict) -> dict[str, list[tuple[str, str]]]:
                     "GitHub requires local verification, security analysis, and completed "
                     "Sonar analysis. The shared Sonar policy requires zero security, "
                     "reliability, and maintainability issues and zero duplicated lines. "
+                    "PR checks cover changed code; main checks cover the entire project. "
                     "Missing configuration fails instead of silently skipping analysis. Pages"
                     " publishes the tested docs only after the required checks pass on main."
                 ),

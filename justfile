@@ -27,6 +27,10 @@ lint:
 test:
     python3 -m unittest discover -s template/tests -p 'test_*.py' -v
 
+coverage:
+    coverage run -m unittest discover -s template/tests -p 'test_*.py' -v
+    coverage xml -o coverage/python.xml
+
 security:
     osv-scanner scan source --lockfile=package-lock.json
     python3 template/scripts/security_source.py .
@@ -35,4 +39,4 @@ security:
 build:
     cp mise.toml package.json package-lock.json template/
 
-ci: lint test security
+ci: lint test coverage security
