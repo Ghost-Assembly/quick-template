@@ -17,6 +17,7 @@ lint:
     cd template && ../node_modules/.bin/eslint --max-warnings=0 --no-inline-config .
     ruff check --ignore-noqa template/scripts template/tests
     ruff format --check template/scripts template/tests
+    shellcheck template/scripts/*.sh
     cmp mise.toml template/mise.toml
     cmp package.json template/package.json
     cmp package-lock.json template/package-lock.json
