@@ -13,7 +13,7 @@ from pathlib import Path, PurePosixPath
 
 ROOT = Path(__file__).resolve().parent.parent
 # Static, side-effect, re-export and dynamic imports of a relative module path.
-RELATIVE_IMPORT = re.compile(r"""\b(?:from|import)\s*\(?\s*(['"])(\.\.?/[^'"]+)\1""")
+RELATIVE_IMPORT = re.compile(r"""\b(?:from|import)\s*(?:\(\s*)?(['"])(\.\.?/[^'"]+)\1""")
 
 
 def runtime_files(root: Path) -> list[str]:
